@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="referrer" content="no-referrer" />
+    <!-- icon图标 -->
+    <link rel="icon" href="./static/image/kkb.png">
+    <!-- swiper插件 -->
+    <link rel="stylesheet" href="./static/swiper/swiper-bundle.min.css">
+    <script src="./static/swiper/swiper-bundle.min.js"></script>
+    <!-- 全局样式 -->
+    <link rel="stylesheet" href="./static/style.css">
+    <!-- 弹性布局 -->
+    <script src="./static/flexable.js"></script>
+    <!-- Vue3.0 -->
+    <script src="https://unpkg.com/vue@next"></script>
+
+
+</head>
+
+<body>
+    <div id="app">
+        <!-- 视频翻页 -->
+        <div class="swiper-container">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide" v-for="v in videos" @click="doublePlay(v.id,$event)">
+                    <!-- 播放按钮 -->
+                    <img v-show="!v.playing" class="play-btn" src="./static/image/play.png" alt="">
+
+                    <!-- 头像 -->
+                    <img :src="v.author" class="author" alt="" srcset="">
+                    <!-- 获得赞的数量 -->
+                    <div class="reward-num">
+                        <img src="./static/image/active.png" alt="" srcset="">
+                        <p>{{v.likenum}}</p>
+                    </div>
+
+                    <!-- 点赞出现的心 -->
+                    <div class="hearts">
+                        <img v-for="h in hearts" :key="h.id" :style="{left:h.x+'px',top:h.y+'px'}"
+                            src="./static/image/active.png" alt="">
+                    </div>
+
+                    <video :id="'v-'+v.id" :src="v.videoUrl" :poster="v.poster" x5-video-player-fullscreen="true"
+                        webkit-playsinline="true" x-webkit-airplay="true" playsinline="true" x5-playsinline></video>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航栏 -->
+        <footer>
+            <ul>
+                <li>首页</li>
+                <li>朋友</li>
+                <li><img src="./static/image/kkb.png" alt=""></li>
+                <li>消息</li>
+                <li>我</li>
+            </ul>
+        </footer>
+    </div>
+    <script src="./static/data.js"></script>
+    <script>
+        // swiper 距离屏幕左距离
+        const screenW = document.querySelector('.swiper-container').offsetLeft
+        const app = {
+            data() {
+                return {
+                    videos: VIDEOS,
+                    lastIndex: 0,
+                    currentIndex: 0,
+                    timer: null,
+                    db_list: 0,
+                    hearts: []
+                }
+            },
+            mounted() {
+                let _self = this
+                // 1. swiper初始化
+                var mySwiper = new Swiper('.swiper-container', {
+                    direction: 'vertical', // 垂直切换选项
+                    on: {
+                        // 上滑结束
+                        slideChangeTransitionEnd: function () {
+                            _self.lastIndex = _self.currentIndex
+                            _self.currentIndex = this.activeIndex
+                            _self.switchVideo()
+                        }
+                    }
+                })
+            },
+            methods: {
+                // 2. 点击播放
+                playClick(id) {
+                    this.videos.forEach(v => {
+                        if (v.id === id) {
+                            // document.querySelector('#v-' + id).play()
+                            // 点击暂停
+                            if (v.playing) {
+                                v.playing = false
+                                document.querySelector('#v-' + id).pause()
+                            } else {
+                                v.playing = true
+                                document.querySelector('#v-' + id).play()
+                            }
+                        }
+                    })
+                },
+                // 3.判断当前视频
+                switchVideo() {
+                    document.querySelector('#v-' + this.lastIndex).pause()
+                    document.querySelector('#v-' + this.currentIndex).play()
+                    // 修改播放状态
+                    this.videos.forEach(v => {
+                        if (v.id === this.lastIndex) {
+                            v.playing = false
+                        } else if (v.id === this.currentIndex) {
+                            v.playing = true
+                        }
+                    })
+                },
+                likes(e, id) {
+                    console.log(e)
+                    let x = e.clientX - screenW - 40;
+                    let y = e.clientY - 40
+                    this.hearts.push({
+                        x,
+                        y,
+                        id: new Date().getTime()
+                    })
+                    if (this.hearts.length > 5) {
+                        this.hearts.shift()
+                    }
+                    this.videos.forEach(v => {
+                        if (v.id === id) {
+                            v.likenum++
+                        }
+                    })
+                },
+                // 判断单击或者是双击
+                doublePlay(id, e) {
+                    clearTimeout(this.timer)
+                    this.timer = setTimeout(() => {
+                        clearTimeout(this.timer)
+                        this.playClick(id)
+                        this.db_list = 0
+                    }, 300)
+                    if (this.db_list === 0) {
+                        this.db_list = new Date().getTime()
+                    } else {
+                        let now = new Date().getTime()
+                        let del = now - this.db_list
+                        if (del <= 300) {
+                            clearTimeout(this.timer)
+                            this.likes(e, id)
+                        }
+                        this.db_list = 0
+                    }
+                }
+            }
+        }
+        Vue.createApp(app).mount('#app')
+    </script>
+</body>
+
+</html>
